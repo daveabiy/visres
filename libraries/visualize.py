@@ -3,7 +3,14 @@ from libraries.torch_utils import *
 import matplotlib
 from matplotlib import pyplot as plt
 import imageio
+import json
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+
+from skimage.data import shepp_logan_phantom, astronaut, camera, horse
+from skimage.color import rgb2gray
+import skimage.io as io
+from skimage.draw import polygon
 from PIL import Image, ImageDraw, ImageFont
 
 # ['GTK3Agg', 'GTK3Cairo', 'GTK4Agg', 'GTK4Cairo', 'MacOSX', 'nbAgg', 'QtAgg', 'QtCairo', 'Qt5Agg', 'Qt5Cairo', 'TkAgg', 'TkCairo', 'WebAgg', 'WX', 'WXAgg', 'WXCairo', 'agg', 'cairo', 'pdf', 'pgf', 'ps', 'svg', 'template']
@@ -83,7 +90,7 @@ def give_title(image, title = '', idx = '', min_max = True):
     else:
         txt_min_val = ''
         txt_max_val = ''    
-    title = str(idx+1) if title == '' else title
+    title = str(int(idx) + 1) if title == '' else title
     return title+'\n'+txt_min_val+txt_max_val if min_max else title
 
 def give_titles(images, titles = [], min_max = True):
@@ -306,7 +313,7 @@ def plot_func(ax, plot_axis, image, plot_color, add_patch, insert_axes = True, c
     
     return ax
 
-def chose_fig(images, idx = None, rows = None, cols = None, show_all = False, add_length = None, images_per_row = 5, fig_size = None):
+def chose_fig(images, rows = None, cols = None, show_all = False, add_length = None, images_per_row = 5, fig_size = None, no_fig = False):
     (rows, cols) = get_row_col(images, show_all, images_per_row) if rows is None or cols is None else (rows, cols)
     shape = images[0].shape
     if fig_size is not None:    
@@ -321,7 +328,8 @@ def chose_fig(images, idx = None, rows = None, cols = None, show_all = False, ad
         if add_length is None:
             add_length = 5
             fig_size = (fig_size[0]+add_length, fig_size[1])
-    
+        if no_fig:
+            return None, None, rows, cols, fig_size
     fig, ax = plt.subplots(rows, cols, figsize=fig_size, squeeze=False)
     ax.reshape(rows, cols)
     for i in range(len(images), rows*cols):
@@ -392,6 +400,44 @@ def rectangle_shaper(image, position = 'middle', width = 0.1, height = 0.1, move
     top = height*image.shape[0] + buttom
     return int(left), int(right), int(buttom), int(top)
 
+def _default_zoomboxes():
+    return {
+        'top right':    [0.7,  0.7, 0.3, 0.3],
+        'top left':     [0.0,  0.7, 0.3, 0.3],
+        'bottom right': [0.7,  0.0, 0.3, 0.3],
+        'bottom left':  [0.0,  0.0, 0.3, 0.3],
+        'below':        [0.0, -0.3, 0.3, 0.3],
+        'bottom 3':     [[0.0, -0.3, 0.3, 0.3],
+                         [0.35, -0.3, 0.3, 0.3],
+                         [0.7, -0.3, 0.3, 0.3]],
+        'bottom 2':     [[0.0, -0.4, 0.4, 0.4],
+                         [0.45, -0.4, 0.4, 0.4]]
+    }
+
+def _override_zoomboxes(axin_axis):
+    return {
+        False: {'obr': [1.1, 0.4, 0.6, 0.6],
+                'obl': [-0.5, -0.1, 0.4, 0.6],
+                'otr': [1.1,  0.7, 0.3, 0.3]},
+        True:  {'obr': [0.7, -0.5, 0.3, 0.3],
+                'obl': [0.0, -0.5, 0.3, 0.3],
+                'otr': [0.0,  1.1, 0.3, 0.3]}
+    }[axin_axis]
+
+def _plot_locations(axin_axis):
+    # default vs. alternate for single‐box plots
+    single = {
+        'obr': [1.1, 0.0, 0.6, 0.4],
+        'obl': [-0.5, 0.0, 0.4, 0.4],
+        'otr': [1.1, 0.7, 0.3, 0.3],
+    }
+    alt = {
+        'obr': [0.0, -0.5, 0.3, 0.3],
+        'obl': [0.7, -0.5, 0.3, 0.3],
+        'otr': [0.0,  1.1, 0.3, 0.3],
+    }
+    return single if not axin_axis else alt
+
 def apply_kwargs(kwargs):    
     global legend_location, colorbar_normalize, colorbar_axins, colorbar_width, colorbar_height, sa_left, sa_right, sa_top, sa_bottom, sa_wspace, sa_hspace, colorbar_size_factor, colorbar_location, shrink, pad, spacing, lw, move_h, move_v, insert_axes, axin_axis, legend_size, use_line_style
     
@@ -418,7 +464,33 @@ def apply_kwargs(kwargs):
     axin_axis = kwargs.get('axin_axis', True)
     legend_size = kwargs.get('legend_size', 20)
     use_line_style = kwargs.get('use_line_style', True)
+
+def apply(kwargs, config = 'libraries/config.json'):
+    """
+    Visualize images with a flexible JSON-based configuration.
+
+    Parameters:
+        images: list or array of images to display.
+        config (str or dict, optional): Path to a JSON file or a dict of configuration options.
+        **kwargs: Individual parameters to override any values from the config.
+    """
+    # 1. Load JSON config if provided
     
+    if config is not None:
+        if isinstance(config, str) and config.lower().endswith('.json'):
+            with open(config, 'r') as f:
+                cfg = json.load(f) or {}
+        elif isinstance(config, dict):
+            cfg = config.copy()
+        else:
+            raise ValueError("`config` must be a JSON filepath or dict.")
+        # Merge: explicit kwargs override JSON values
+        cfg.update(kwargs)
+        params = cfg
+    else:
+        params = kwargs
+    return params
+
 def resample_profile(profile, target_length):
     """
     Resamples the input profile to a target length using linear interpolation.
@@ -449,20 +521,12 @@ def visualize(images, idx = None, rows = None, cols = None, vmode = 'show', cmap
     positions = ['middle', 'random', 'top right', 'top left', 'bottom right', 'bottom left', 'custom', 'middle left', 'middle right', 'middle top', 'middle bottom']
     
     """
-    #'Accent', 'Accent_r', 'Blues', 'Blues_r', 'BrBG', 'BrBG_r', 'BuGn', 'BuGn_r', 'BuPu', 'BuPu_r', 'CMRmap', 'CMRmap_r', 'Dark2', 'Dark2_r', 'GnBu', 'GnBu_r', 'Greens', 'Greens_r', 'Greys', 'Greys_r', 'OrRd', 'OrRd_r', 'Oranges', 'Oranges_r', 'PRGn', 'PRGn_r', 'Paired', 'Paired_r', 'Pastel1', 'Pastel1_r', 'Pastel2', 'Pastel2_r', 'PiYG', 'PiYG_r', 'PuBu', 'PuBuGn', 'PuBuGn_r', 'PuBu_r', 'PuOr', 'PuOr_r', 'PuRd', 'PuRd_r', 'Purples', 'Purples_r', 'RdBu', 'RdBu_r', 'RdGy', 'RdGy_r', 'RdPu', 'RdPu_r', 'RdYlBu', 'RdYlBu_r', 'RdYlGn', 'RdYlGn_r', 'Reds', 'Reds_r', 'Set1', 'Set1_r', 'Set2', 'Set2_r', 'Set3', 'Set3_r', 'Spectral', 'Spectral_r', 'Wistia', 'Wistia_r',
-    if 'DataFrame' in str(type(images)):
-        cond = kwargs['cond'] if 'cond' in kwargs.keys() else None
-        cols = ['ssim_list', 'psnr_list', 'ground_ssim_list', 'ground_psnr_list', 'A_SSIM', 'A_PSNR', cond]
-        keys = ['SSIM of holo and reco image', 'PSNR of holo and reco image', 'SSIM of ground truth and reco image', 'PSNR of ground truth and reco image', 'SSIM of ground truth and reco abs', 'PSNR of ground truth and reco abs']
-        cols_new = ['SSIM(${I}$,$\\tilde{I}$)', 'PSNR(${I}$,$\\tilde{I}$)', 'SSIM($\\phi,\\tilde{\\phi}$)', 'PSNR($\\phi,\\tilde{\\phi}$)', 'SSIM($A,\\tilde{A}$)', 'PSNR($A,\\tilde{A}$)', cond]
-        plot_pandas(images, column_range=cols_new, x_column=cond,  x_label=cond, y_label=cols)
-        plot_pandas(images, column_range=cols_new, x_column=cond,  x_label=cond, y_label='Metric', use_sns =True, cond = cond)
-        # regression_plot(images, cond, cols_new, cond, cols_new, order = 5)
-        return None
     images = convert_images(images, idx)
     title = 'no_title' if title == 'None' or title == 'no' or title == False else title
     if title != 'no_title':
         titles = give_titles(images, title, min_max)
+    else:
+        titles = [''] * len(images)
     images = [im[0] if type(im) is list else im for im in images]
     shape = images[0].shape
     dim1 = True
@@ -486,7 +550,7 @@ def visualize(images, idx = None, rows = None, cols = None, vmode = 'show', cmap
         description_title, add_length = get_setup_info(dict)
     else:
         add_length = None
-    color
+        
     insert_axes = kwargs['insert_axes'] if 'insert_axes' in kwargs.keys() else True
     axin_axis = kwargs['axin_axis'] if 'axin_axis' in kwargs.keys() else True
     legend_size = kwargs['legend_size'] if 'legend_size' in kwargs.keys() else 20
@@ -498,7 +562,7 @@ def visualize(images, idx = None, rows = None, cols = None, vmode = 'show', cmap
     if type(fig_size) is int:
         fig_size = (fig_size, fig_size)
     
-    fig, ax, rows, cols, fig_size= chose_fig(images, idx, rows, cols, add_length, show_all, images_per_row, fig_size)
+    fig, ax, rows, cols, fig_size= chose_fig(images, rows, cols, kwargs.get('show_all', True), add_length, images_per_row, fig_size)
     upper_limit = rows*cols
     if rows*cols > len(images):
         upper_limit = len(images)
@@ -586,7 +650,7 @@ def visualize(images, idx = None, rows = None, cols = None, vmode = 'show', cmap
                 # [ax[i,j].indicate_inset_zoom(axins[i*cols + j], edgecolor=colors[(i*cols+j)%len(colors)], alpha = 0.9, lw=5) for i in range(rows) for j in range(cols) if i*cols + j < upper_limit]
                         
         else:
-            #for each image, create three patches on the image
+            
             for k in range(len(positions)):
                 axins = []
                 for i in range(rows):
@@ -848,10 +912,10 @@ def visualize(images, idx = None, rows = None, cols = None, vmode = 'show', cmap
     if dict is not None:
         fig.subplots_adjust(left=add_length/150)
         fig.suptitle(description_title, fontsize=10, y=0.95, x=0.05, ha='left', va='center', wrap=True, color='blue')
-    
+
     if save_path is not None:
         if save_name is None:
-            save_name = get_file_nem(dict)
+            save_name = get_file_nem(dict) if dict is not None else 'image'
         save_path = save_path + save_name + '.png'
         plt.savefig(save_path, bbox_inches='tight', pad_inches=0.1, dpi=300, facecolor='w', edgecolor='w', orientation='portrait', transparent=False, bbox_extra_artists=None, metadata=None)
     
@@ -863,796 +927,6 @@ def visualize(images, idx = None, rows = None, cols = None, vmode = 'show', cmap
         
     plt.show()        
     # return fig, ax, plt
-
-def create_gif_with_progress_text(images, output_filename, duration=0.5, loop=0,
-                                  normalize=True, texts = None, progress_bar=True,
-                                  progress_bar_height=5, progress_bar_color=(0, 255, 0),
-                                  add_text=True, text_color=(255, 255, 255),
-                                  font_path=None, font_size=20, progress_bar_position='center', text_position=(10, 10)):
-    """
-    Create a GIF from a list of 2D numpy arrays (grayscale images) with a progress bar
-    and optional text overlay on top of the progress bar.
+  
     
-    Parameters:
-      images (list): List of 2D numpy arrays representing grayscale images.
-      output_filename (str): Path/filename for the output GIF.
-      duration (float): Seconds to display each frame.
-      loop (int): Number of loops; 0 means infinite.
-      normalize (bool): If True, each image is scaled to use the full 0–255 range.
-      progress_bar (bool): If True, overlay a progress bar on each frame.
-      progress_bar_height (int): Height in pixels of the progress bar.
-      progress_bar_color (tuple): RGB color for the progress bar.
-      add_text (bool): If True, overlay text on top of the progress bar.
-      text_color (tuple): RGB color for the overlay text.
-      font_path (str): Path to a TrueType font file. If None, the default font is used.
-      font_size (int): Font size for the overlay text.
-      text_position (str or tuple): 'center' to center text on the bar or a (x, y) tuple for a custom position.
-      
-    Returns:
-      None (saves the looping GIF to output_filename)
     
-    Example:
-            
-        create_gif_with_progress_text(model.phase_list, 'phase_rec.gif', duration=10.9, loop = 0, font_path='DejaVuSans-BoldOblique.ttf', font_size = 24, text_color = (0, 0, 255), texts = p_texts, progress_bar=True, add_text=False)
-    """
-
-    frames = []
-    total_frames = len(images)
-    
-    # Load a TrueType font if provided; otherwise, use default.
-    if font_path is not None:
-        font = ImageFont.truetype(font_path, font_size)
-    else:
-        font = ImageFont.load_default()
-        print("Warning: Using default font which may not support size adjustments.")
-    
-    for idx, img in enumerate(images):
-        # Normalize and convert image if it's a 2D array.
-        if img.ndim == 2:
-            if normalize:
-                min_val = img.min()
-                max_val = img.max()
-                if max_val > min_val:
-                    img = (img - min_val) / (max_val - min_val) * 255
-                else:
-                    img = img * 0
-            img = np.clip(img, 0, 255).astype(np.uint8)
-            # Convert grayscale to RGB.
-            img_rgb = np.stack((img,)*3, axis=-1)
-        else:
-            img_rgb = img
-        
-        # Convert to a PIL Image.
-        pil_img = Image.fromarray(img_rgb)
-        width, height = pil_img.size
-        
-        draw = ImageDraw.Draw(pil_img)
-        if progress_bar:
-            # Calculate progress fraction (0 to 1) for the current frame.
-            progress_fraction = (idx + 1) / total_frames
-            bar_width = int(width * progress_fraction)
-            bar_top = height - progress_bar_height * 0.9
-            bar_bottom = height - progress_bar_height * 0.1
-            # Draw the progress bar.
-            draw.rectangle([0, bar_top, bar_width, bar_bottom], fill=progress_bar_color)
-            
-            if add_text:
-                # Create a text label showing the progress percentage.
-                progress_percentage = int(progress_fraction * 100)
-                text = f"{progress_percentage}%"                    
-                # Use font.getbbox to measure text dimensions.
-                bbox = font.getbbox(text)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
-                # Determine text position.
-                if progress_bar_position == 'center':
-                    x = (width - text_width) // 2
-                    y = bar_top + (progress_bar_height - text_height) *2
-                elif isinstance(progress_bar_position, tuple):
-                    x, y = progress_bar_position
-                else:
-                    x, y = (10, bar_top)  # Default fallback position.
-                # Draw the text on top of the progress bar.
-                
-                draw.text((x, y), text, fill=text_color, font=font)
-        if texts is not None:
-            if texts is not None:
-                text_to_draw = texts[idx]
-                draw.text(text_position, text_to_draw, fill=text_color, font=font)
-            
-            # Convert back to NumPy array
-            frame_with_text = np.array(pil_img)
-        # Append the modified frame.
-        frames.append(np.array(pil_img))
-    
-    # Save all frames as a GIF.
-    imageio.mimsave(output_filename, frames, duration=duration, loop=loop)
-
-def pad_images_to_same_size(images, background_color=(0, 0, 0), normalize=True):
-    """
-    Pads a list of images (numpy arrays) to the same size based on the largest width and height.
-    Optionally, each image is normalized (i.e. rescaled) to use the full 0-255 range before padding.
-    
-    Parameters:
-      images (list): List of NumPy arrays. Each can be grayscale (2D) or RGB (3D).
-      background_color (tuple): RGB color to use for padding (default is black).
-      normalize (bool): If True, normalize each image to the full 0–255 range before padding.
-    
-    Returns:
-      padded_images (list): List of images as NumPy arrays, all having the same dimensions.
-    """
-    widths, heights = [], []
-    for img in images:
-        if img.ndim == 2:
-            h, w = img.shape
-        else:
-            h, w = img.shape[:2]
-        widths.append(w)
-        heights.append(h)
-    max_width = max(widths)
-    max_height = max(heights)
-    
-    padded_images = []
-    for img in images:
-        # Normalize if required.
-        if img.ndim == 2:
-            if normalize:
-                min_val = img.min()
-                max_val = img.max()
-                if max_val > min_val:
-                    # Scale values to 0-255.
-                    img = (img - min_val) / (max_val - min_val) * 255
-                else:
-                    img = np.zeros_like(img)
-            # Ensure the image is in 8-bit format.
-            img = np.clip(img, 0, 255).astype(np.uint8)
-            # Convert grayscale to RGB.
-            img = np.stack((img,)*3, axis=-1)
-        else:
-            # Optionally, you could add normalization for RGB images here as well.
-            pass
-        
-        pil_img = Image.fromarray(img)
-        new_img = Image.new("RGB", (max_width, max_height), background_color)
-        w, h = pil_img.size
-        left = (max_width - w) // 2
-        top = (max_height - h) // 2
-        new_img.paste(pil_img, (left, top))
-        padded_images.append(np.array(new_img).astype(np.uint8))
-    
-    return padded_images
-
-import imageio
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont
-import matplotlib.pyplot as plt
-from io import BytesIO
-
-def get_plot_image(profile_data, mode='profile', figsize=(4, 3), dpi=100, fixed_ylim=None, 
-                   plot_background_color='white', xlabel_fontsize=14, ylabel_fontsize=14,
-                   tick_labelsize=12, title_fontsize=16, add_colorbar=False, cmap_name="viridis"):
-    """
-    Create a plot from profile_data and return it as a PIL Image.
-    
-    Parameters:
-      profile_data (array-like): 
-         - If mode=='profile': a 1D array to plot as a line.
-         - If mode=='colormap': a 1D array (which will be expanded to 2D) to display via imshow.
-      mode (str): Either 'profile' (line plot) or 'colormap' (image view).
-      figsize (tuple): Figure size.
-      dpi (int): Figure resolution.
-      fixed_ylim (tuple or None): If provided, sets the y-axis limits.
-      plot_background_color (str or tuple): Background color for the plot.
-      xlabel_fontsize (int): Font size for the x-axis label.
-      ylabel_fontsize (int): Font size for the y-axis label.
-      tick_labelsize (int): Font size for tick labels.
-      title_fontsize (int): Font size for the title.
-      add_colorbar (bool): If True, adds a colorbar to the plot.
-      cmap_name (str): Colormap to use.
-      
-    Returns:
-      A PIL Image containing the plot.
-    """
-    fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-    fig.patch.set_facecolor(plot_background_color)
-    ax.set_facecolor(plot_background_color)
-    
-    if mode == 'profile':
-        ax.plot(profile_data, linestyle='-', marker=None)
-        ax.set_title("Profile", fontsize=title_fontsize)
-        ax.set_xlabel("X", fontsize=xlabel_fontsize)
-        ax.set_ylabel("Intensity (mean pixel)", fontsize=ylabel_fontsize)
-        if fixed_ylim is not None:
-            ax.set_ylim(fixed_ylim)
-            vmin, vmax = fixed_ylim
-        else:
-            vmin, vmax = min(profile_data), max(profile_data)
-    elif mode == 'colormap':
-        # Expand the 1D data into 2D (one row).
-        data_img = np.atleast_2d(profile_data)
-        im = ax.imshow(data_img, aspect='auto', cmap=cmap_name)
-        # ax.set_title("Colormap", fontsize=title_fontsize)
-        # ax.set_xlabel("X", fontsize=xlabel_fontsize)
-        # ax.set_ylabel("Intensity", fontsize=ylabel_fontsize)
-        if fixed_ylim is not None:
-            # ax.set_clim(*fixed_ylim)
-            vmin, vmax = fixed_ylim
-        else:
-            vmin, vmax = np.min(profile_data), np.max(profile_data)
-    else:
-        raise ValueError("mode must be either 'profile' or 'colormap'")
-    
-    ax.tick_params(axis='both', labelsize=tick_labelsize)
-    
-    if add_colorbar:
-        vmin, vmax = np.min(profile_data), np.max(profile_data)
-        
-        if mode == 'profile':
-            norm = plt.Normalize(vmin=vmin, vmax=vmax)
-            cmap = plt.get_cmap(cmap_name)
-            sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
-            sm.set_array([])
-            plt.colorbar(sm, ax=ax)
-        elif mode == 'colormap':
-            plt.colorbar(im, ax=ax)
-    
-    plt.tight_layout()
-    buf = BytesIO()
-    plt.savefig(buf, format='png', facecolor=fig.get_facecolor(), edgecolor='none')
-    plt.close(fig)
-    buf.seek(0)
-    return Image.open(buf)
-
-def create_gif_with_progress_profile_text(images, output_filename, duration=0.5, loop=0,
-                                          normalize=True, texts=None, progress_bar=True,
-                                          progress_bar_height=5, progress_bar_color=(0, 255, 0),
-                                          add_text=True, text_color=(255, 255, 255),
-                                          font_path=None, font_size=20,
-                                          progress_bar_position='center', text_position=(10, 10),
-                                          add_profile=True, profile_mode='profile',
-                                          profile_figsize=(4, 3), profile_dpi=100,
-                                          background_color=(255, 255, 255),
-                                          add_colorbar=False,
-                                          add_main_colorbar=False,
-                                          main_colorbar_width=30,
-                                          main_colorbar_height=None,
-                                          main_colorbar_cmap="viridis"):
-    """
-    Create a GIF from a list of 2D numpy arrays (grayscale images) with a progress bar
-    (and optional text overlays) and an evolving profile plot added to each frame.
-    Additionally, you can overlay a main colorbar on the base image (at the lower right corner).
-    
-    Parameters:
-      images (list): List of 2D numpy arrays (grayscale images).
-      output_filename (str): Path/filename for the output GIF.
-      duration (float): Seconds to display each frame.
-      loop (int): Loop count; 0 for infinite.
-      normalize (bool): If True, scale each image to the full 0–255 range.
-      texts (None, str, or list): Additional text overlay for each frame.
-      progress_bar (bool): If True, overlay a progress bar.
-      progress_bar_height (int): Height (in pixels) of the progress bar.
-      progress_bar_color (tuple): RGB color of the progress bar.
-      add_text (bool): If True, overlay progress percentage text on the progress bar.
-      text_color (tuple): RGB color for overlay text.
-      font_path (str): Path to a TrueType font file; if None, default font is used.
-      font_size (int): Font size for overlay text.
-      progress_bar_position (str or tuple): 'center' to center progress text or a (x,y) tuple.
-      text_position (tuple): Position for any additional text overlay.
-      add_profile (bool): If True, compute and add a profile plot (side by side) to each frame.
-      profile_mode (str): Mode for profile plot ("profile" or "colormap").
-      profile_figsize (tuple): Figure size for the profile plot.
-      profile_dpi (int): DPI for the profile plot.
-      background_color (tuple): Background color for compositing the final frame.
-      add_colorbar (bool): If True, add a colorbar to the profile plot.
-      add_main_colorbar (bool): If True, overlay a main colorbar on the base image.
-      main_colorbar_width (int): Width of the main image colorbar.
-      main_colorbar_height (int or None): Height of the main image colorbar. If None, defaults to 1/3 of base image height.
-      main_colorbar_cmap (str): Colormap for the main image colorbar.
-      
-    Returns:
-      None (saves a looping GIF to output_filename)
-    """
-    frames = []
-    total_frames = len(images)
-    
-    # Load font for overlay text.
-    if font_path is not None:
-        font = ImageFont.truetype(font_path, font_size)
-    else:
-        font = ImageFont.load_default()
-        print("Warning: Using default font which may not support size adjustments.")
-    
-    for idx, img in enumerate(images):
-        original_img = img.copy()  # Save original for computing colorbar range.
-        # Process the base image.
-        if img.ndim == 2:
-            if normalize:
-                min_val = img.min()
-                max_val = img.max()
-                if max_val > min_val:
-                    img = (img - min_val) / (max_val - min_val) * 255
-                else:
-                    img = np.zeros_like(img)
-            img = np.clip(img, 0, 255).astype(np.uint8)
-            img_rgb = np.stack((img,)*3, axis=-1)
-        else:
-            img_rgb = img  # Assume already displayable.
-        
-        base_img = Image.fromarray(img_rgb)
-        width, height = base_img.size
-        draw = ImageDraw.Draw(base_img)
-        
-        # Draw progress bar.
-        if progress_bar:
-            progress_fraction = (idx + 1) / total_frames
-            bar_width = int(width * progress_fraction)
-            bar_top = height - int(progress_bar_height * 0.9)
-            bar_bottom = height - int(progress_bar_height * 0.1)
-            draw.rectangle([0, bar_top, bar_width, bar_bottom], fill=progress_bar_color)
-            if add_text:
-                progress_percentage = int(progress_fraction * 100)
-                progress_text = f"{progress_percentage}%"
-                bbox = font.getbbox(progress_text)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
-                if progress_bar_position == 'center':
-                    x = (width - text_width) // 2
-                    y = bar_top + ((bar_bottom - bar_top) - text_height) // 2
-                elif isinstance(progress_bar_position, tuple):
-                    x, y = progress_bar_position
-                else:
-                    x, y = (10, bar_top)
-                draw.text((x, y), progress_text, fill=text_color, font=font)
-        
-        # Add additional overlay text.
-        if texts is not None:
-            overlay_text = texts if isinstance(texts, str) else texts[idx]
-            draw.text(text_position, overlay_text, fill=text_color, font=font)
-        
-        # Add main colorbar overlay if enabled.
-        if add_main_colorbar:
-            margin = 5
-            if main_colorbar_height is None:
-                main_colorbar_height = height // 3
-            orig_min = float(original_img.min())
-            orig_max = float(original_img.max())
-            # Create a 1D gradient array spanning the original intensity range.
-            gradient_data = np.linspace(orig_min, orig_max, num=256)
-            # Use get_plot_image in 'colormap' mode to generate a colorbar image.
-            colorbar_img = get_plot_image(gradient_data, mode=profile_mode, fixed_ylim=None,
-                                           figsize=(4,10),#(main_colorbar_width/10, main_colorbar_height/100),
-                                           dpi=100, add_colorbar=add_colorbar, cmap_name=main_colorbar_cmap)
-            # # Resize the resulting image to the desired dimensions.
-            colorbar_img = colorbar_img.resize((main_colorbar_width, main_colorbar_height))
-            base_img.paste(colorbar_img, (width - main_colorbar_width - margin, height - main_colorbar_height - margin))
-        
-        # Optionally add a profile plot.
-        if add_profile:
-            # Compute a profile from the middle row of the original image.
-            profile_data = original_img[len(original_img)//2]
-            plot_img = get_plot_image(profile_data, mode=profile_mode, figsize=profile_figsize, dpi=profile_dpi,
-                                      fixed_ylim=(0, 255), add_colorbar=add_colorbar, cmap_name="viridis")
-            new_width = base_img.width + plot_img.width
-            new_height = max(base_img.height, plot_img.height)
-            combined_img = Image.new("RGB", (new_width, new_height), background_color)
-            combined_img.paste(base_img, (0, 0))
-            combined_img.paste(plot_img, (base_img.width, 0))
-        else:
-            combined_img = base_img
-        
-        frames.append(np.array(combined_img).astype(np.uint8))
-    
-    imageio.mimsave(output_filename, frames, duration=duration, loop=loop)
-
-def visualize_interact(pure = []):
-    import ipywidgets as widgets
-    from ipywidgets import interact
-    from IPython.display import display
-    interact(visualize, pure = widgets.fixed(pure), mode = widgets.Dropdown(options=['show', 'plot'], value='show', description='Show or plot:'), rows = widgets.IntSlider(min=1, max=10, step=1, value=1, description='Rows:'), cols = widgets.IntSlider(min=1, max=10, step=1, value=3, description='Columns:'))
- 
-def plot_pandas(df, column_range = None, x_column = None, titles = None, min_max = False, x_label = '', y_label = '', images_per_row = 4, scatter = False, fig_size = None, use_sns = False, cond = None):
-    """
-    this function plots the metadata dataframe
-    """
-    
-    if use_sns:
-        import seaborn as sns
-        sns.set_theme(style="whitegrid")
-        
-    cond = 'iteration' if cond is None else cond
-    if column_range is None:
-        column_range = df.columns[2:-1]
-    elif column_range == 'all':
-        column_range = df.columns
-    elif type(column_range) is str:
-        column_range = [column_range]
-    elif type(column_range) is int:
-        column_range = df.columns[column_range:-1]
-
-    rows, cols = get_row_col(column_range, images_per_row = images_per_row)
-    fig = plt.figure(figsize=fig_size) if fig_size is not None else plt.figure(figsize=(20,10))
-    # print('rows: ', rows, 'cols: ', cols)
-    # if rows*cols < 4:  
-    #     fig_size = (10,15) #if fig_size == None else fig_size
-    #     fig = plt.figure(figsize=fig_size)
-    # else:
-    #     fig_size = (10,20) #if fig_size == None else fig_size
-    #     fig = plt.figure(figsize=(20,10))
-    if min_max:
-        min_vals = [df[column].min() for column in column_range], [df[column].idxmin() for column in column_range]
-        max_vals = [df[column].max() for column in column_range], [df[column].idxmax() for column in column_range]
-    else:
-        min_vals, max_vals = '', ''
-    if titles is None:
-        # titles = [column + '\nmin = ' + str(min_per_column[i])+' at ' + str(df[column].idxmin()) +'\n max = ' + str(df[column].max())+' at ' + str(df[column].idxmax()) for i, column in enumerate(column_range)]
-        if min_max: 
-            titles = [column + '\nmin = ' + str(min_vals[0][i])+' at ' + str(min_vals[1][i]) +'\n max = ' + str(max_vals[0][i])+' at ' + str(max_vals[1][i]) for i, column in enumerate(column_range)]
-        else:
-            titles = [str(column) for column in column_range]
-
-
-    for i, column in enumerate(column_range):
-        ax = fig.add_subplot(rows, cols, i+1)
-        if x_column is None:
-            if use_sns:
-                sns.regplot(x=cond, y=column, data=df, scatter_kws={'s': 10}, ci=None, order = 5) if not scatter else sns.scatterplot(x=cond, y=column, data=df)
-            else:
-                ax.plot(df[column]) if not scatter else ax.scatter(df.index, df[column])
-            ax.set_xlabel(cond) if x_label == '' else ax.set_xlabel(x_label)
-            ax.set_ylabel(column)  if y_label == '' else ax.set_ylabel(y_label)
-            ax.set_title(titles[i])
-        else: 
-            if use_sns:
-                sns.regplot(x=x_column, y=column, data=df, scatter_kws={'s': 10}, ci=None, order = 5) if not scatter else sns.scatterplot(x=x_column, y=column, data=df)
-            else:            
-                ax.plot(df[x_column], df[column]) if not scatter else ax.scatter(df[x_column], df[column])
-            ax.set_xlabel(x_column)
-            ax.set_ylabel(column)
-            ax.set_title(titles[i])
-    plt.show()
-    plt.figure()        
-    if use_sns:
-        corr = df.corr()
-        sns.heatmap(corr, cmap='coolwarm', center=0, annot=True, square=False, linewidths=.5, cbar_kws={"shrink": .8})
-        plt.show()  
-        plt.figure()
-    plt.tight_layout()
-    return min_vals, max_vals
-
-def plot_image(plots, idx = None, title = '', fig = None, ax = None):
-    if type(plots) is not list:
-            plots = [plots]
-    if idx is not None:
-        plots = [plots[i] for i in idx]
-    title = give_titles(plots, title)
-    fig_size = (5,10) if len(plots) > 1 else (5,5)
-    fig = plt.figure(figsize=fig_size) if fig is None else fig
-    ax = fig.add_subplot(111)
-    [ax.plot(plots[i]) for i in range(len(plots))]
-    ax.set_title(title)
-    ax.legend(title)
-    plt.show()
-    return fig, ax
-
-def regression_plot(df, x_column, y_columns, x_label, y_label, order = 3):
-    import seaborn as sns
-    import matplotlib.pyplot as plt
-    sns.set_theme(style="whitegrid")
-    y_columns = [y_columns] if not isinstance(y_columns, list) else y_columns
-    y_col = df[y_columns[0]]
-    x_col = df[x_column]
-    # Plot the residuals after fitting a linear model
-    # sns.residplot(x=x_col, y=y_col, lowess=False, color="g")
-    # compute the correlation matrix and display it
-    corr = df.corr()
-    # Set up the matplotlib figure
-    f, ax = plt.subplots(figsize=(11, 9))
-    # Draw the heatmap with the mask and correct aspect ratio
-    sns.heatmap(corr, cmap='coolwarm', center=0, annot=True, square=True, linewidths=.5)#, cbar_kws={"shrink": .5})
-    plt.show()
-    for i,y in enumerate(y_columns):
-        # sns.lmplot(x=x_column, y=y, data=df, height=6)
-        #non-linear regression
-        sns.regplot(x=x_column, y=y, data=df, scatter_kws={'s': 10}, ci=None, order=order)
-        plt.xlabel(x_label)
-        plt.ylabel(y)
-        plt.title('Regression plot between '+x_label+' and '+ y_label[i])#+'with order 3 showing the 95% confidence interval'+'\nPearson:'+str(round(corr[x_column][y], 4)))
-        plt.show()
-        
-class IV:
-    """ImageVisualizer class for plotting images."""
-    def __init__(self, images, **kwargs):
-        self.idx = kwargs.get("idx", None) 
-        self.min_max = kwargs.get("min_max", True)
-        self.title = kwargs.get("title", "")
-        self.dict = kwargs.get("dict", None)
-        self.rows = kwargs.get("rows", 1)
-        self.cols = kwargs.get("cols", 5)
-        self.fig_size = kwargs.get("fig_size", None)
-        self.show_all = kwargs.get("show_all", False)
-        self.images_per_row = kwargs.get("images_per_row", 5)
-        self.cmap = kwargs.get("cmap", 'gray')
-        
-        self.images = convert_images(images, self.idx)
-        self.shape = images[0].shape
-        self.titles = give_titles(images, self.title, self.min_max) if self.title != None else None
-
-        self.fig_size = (self.fig_size, self.fig_size) if type(self.fig_size) is int else self.fig_size
-        self.disciption_title, self.add_length = get_setup_info(self.dict) if self.dict is not None else None, None
-
-        self.fig, self.ax, self.rows, self.cols, self.fig_size = chose_fig(self.images, self.rows, self.cols, self.show_all, self.add_length, self.images_per_row, self.fig_size)
-        self.upper_limit = self.rows * self.cols
-        self.upper_limit = len(self.images) if self.upper_limit > len(self.images) else self.upper_limit
-        
-        self.zoomout_location = kwargs.get("zoomout_location", "top right")
-        self.zoom_box = kwargs.get("zoom_box", [0.1, 0.1, 0.3, 0.3])
-        self.zoom_boxes = kwargs.get("zoom_boxes", [[0.1, 0.1, 0.3, 0.3], [0.1, 0.1, 0.3, 0.3], [0.1, 0.1, 0.3, 0.3]])
-        self.positions = kwargs.get("positions", ['top right', 'top right', 'top right'])
-        self.left = kwargs.get("left", [0, 0, 0])
-        
-        self.colors = ['blue', 'red', 'green', 'orange', 'purple', 'pink', 'brown', 'cyan', 'magenta', 'grey', 'lime', 'teal', 'black','maroon', 'navy', 'olive', 'silver', 'aqua', 'fuchsia', 'lime', 'teal', 'lavender', 'maroon', 'navy', 'olive', 'silver', 'aqua', 'fuchsia', 'blue', 'red', 'green', 'orange', 'purple', 'pink', 'brown', 'cyan', 'magenta', 'grey', 'lime', 'teal', 'black','maroon', 'navy', 'olive', 'silver', 'aqua', 'fuchsia', 'lime', 'teal', 'lavender', 'maroon', 'navy', 'olive', 'silver', 'aqua', 'fuchsia', 'blue', 'red', 'green', 'orange', 'purple', 'pink', 'brown', 'cyan', 'magenta', 'grey', 'lime', 'teal', 'black','maroon', 'navy', 'olive', 'silver', 'aqua', 'fuchsia', 'lime', 'teal', 'lavender', 'maroon', 'navy', 'olive', 'silver', 'aqua', 'fuchsia'] if 'colors' not in kwargs.keys() else kwargs['colors']
-        self.insert_axes = kwargs.get("insert_axes", True)
-        self.axin_axis = kwargs.get("axin_axis", True)
-        self.legend_size = kwargs.get("legend_size", 20)
-        self.vmode = kwargs.get("vmode", "show")
-        self.plot_axis = kwargs.get("plot_axis", "diagonal")
-        self.plot_color = kwargs.get("plot_color", "blue")
-        self.plot_location = kwargs.get("plot_location", [0.7, 0.7, 0.3, 0.3])
-        self.colorbar = kwargs.get("colorbar", False)
-        self.colorbar_normalize = kwargs.get("colorbar_normalize", False)
-        self.colorbar_location = kwargs.get("colorbar_location", "right")
-        self.colorbar_axins = kwargs.get("colorbar_axins", None)
-        self.colorbar_width = kwargs.get("colorbar_width", 0.07)
-        self.colorbar_height = kwargs.get("colorbar_height", 0.07)
-        self.colorbar_size_factor = kwargs.get("colorbar_size_factor", 1)
-        self.spacing = kwargs.get("spacing", 'uniform')
-        self.shrink = kwargs.get("shrink", 0.5)
-        self.pad = kwargs.get("pad", 0.05)
-        self.alpha = kwargs.get("alpha", 1)
-        
-        self.save_path = kwargs.get("save_path", None)
-        self.save_name = kwargs.get("save_name", None)
-        self.loc = kwargs.get("loc", 'upper right')
-        self.bbox_to_anchor = kwargs.get("bbox_to_anchor", (1.2, 1))
-        self.ncol = kwargs.get("ncol", 1)
-        self.overall_title = kwargs.get("overall_title", None)
-        self.title_x = kwargs.get("title_x", 0.5)
-        self.title_y = kwargs.get("title_y", 1.0)
-        self.title_color = kwargs.get("title_color", 'black')
-        self.title_horizontalalignment = kwargs.get("title_horizontalalignment", 'center')
-        self.title_fontweight = kwargs.get("title_fontweight", 'bold')
-        self.second_title = kwargs.get("second_title", 'no_title')
-        self.second_title_x = kwargs.get("second_title_x", 0.3)
-        self.second_title_y = kwargs.get("second_title_y", 0.05)
-        self.second_title_color = kwargs.get("second_title_color", 'w')
-        self.second_title_fontsize = kwargs.get("second_title_fontsize", 28)
-        self.second_title_horizontalalignment = kwargs.get("second_title_horizontalalignment", 'center')
-        self.second_title_fontweight = kwargs.get("second_title_fontweight", 'bold')
-
-    def _plot_images(self):
-        """Plot the images."""
-        if self.vmode == 'show':
-            self._show_images()
-        elif self.vmode == 'plot':
-            self._plot_images()
-        elif self.vmode == 'zoom':
-            self._zoom_images()
-        elif self.vmode == 'both':
-            self._show_images()
-            self._plot_images()
-        elif self.vmode == 'zoom_with_plot':
-            self._zoom_images()
-            self._plot_images()
-        elif self.vmode == 'zoom_with_patch':
-            self._zoom_images()
-            self._plot_images()
-        elif self.vmode == 'all':
-            self._zoom_images()
-            self._plot_images()
-            self._show_images()
-        elif self.vmode == 'add':
-            self._add_images()
-        elif self.vmode == 'add_show':
-            self._add_images()
-            self._show_images()
-        elif self.vmode == 'add_plot':
-            self._add_images()
-            self._plot_images()
-        elif self.vmode == 'add_all':
-            self._add_images()
-            self._plot_images()
-            self._show_images()
-        else:
-            raise ValueError("Invalid value for vmode")
-    
-    def _plot_zoom(self, ax, img, idx):
-        """Add a zoom-in inset to a plot."""
-        left, right, bottom, top = self._rectangle_shaper(img, idx)
-        zoom_box = self._get_zoom_box_coords()
-        
-        ax.add_patch(
-            patches.Rectangle((left, bottom), right - left, top - bottom, edgecolor=self.plot_color, lw=2, facecolor='none')
-        )
-        
-        axins = ax.inset_axes(zoom_box)
-        axins.imshow(img[bottom:top, left:right], cmap=self.cmap)
-        axins.axis('off')
-        ax.indicate_inset_zoom(axins, edgecolor=self.plot_color)
-        
-    def _rectangle_shaper(self, image, idx, width=0.1, height=0.1):
-        """Create a rectangle for zooming."""
-        h, w = image.shape
-        left = int(w * (1 - width) / 2)
-        right = int(w * (1 + width) / 2)
-        bottom = int(h * (1 - height) / 2)
-        top = int(h * (1 + height) / 2)
-        return left, right, bottom, top
-    
-    def _get_zoom_box_coords(self):
-        """Return the coordinates for the zoom box."""
-        if self.zoomout_location == 'top right':
-            return self.zoom_box
-        if self.zoomout_location == 'top left':
-            return self.zoom_boxes[0]
-        if self.zoomout_location == 'bottom right':
-            return self.zoom_boxes[1]
-        if self.zoomout_location == 'bottom left':
-            return self.zoom_boxes[2]
-        raise ValueError("Invalid value for zoomout_location")
-    
-    def _prepare_images(self, images, idx):
-        """Converts images to a standard format."""
-        if not isinstance(images, list):
-            images = [images]
-        return [self._convert_image(im, idx) for im in images]
-    
-        
-    def _show_images(self):
-        """Show the images."""
-        [ax[i,j].imshow(images[i*cols + j], cmap = cmap[i*cols + j], alpha = alpha[i*cols+j], norm = norm) for i in range(rows) for j in range(cols) if i*cols + j < upper_limit]
-        [ax[i, j].axis(axis) for i in range(rows) for j in range(cols) if i*cols + j < upper_limit]
-        
-        for idx, (img, ax) in enumerate(zip(self.images, self.ax.flatten())):
-            ax.imshow(img, cmap='gray')
-            ax.set_title(self.titles[idx])
-            ax.axis('off')
-        plt.show()
-        
-    def _plot_images(self):
-        """Plot the images."""
-        for idx, (img, ax) in enumerate(zip(self.images, self.ax.flatten())):
-            ax.imshow(img, cmap='gray')
-            ax.set_title(self.titles[idx])
-            ax.axis('on')
-        plt.show()
-        
-    def _zoom_images(self):
-        """Zoom in on the images."""
-        for idx, (img, ax) in enumerate(zip(self.images, self.ax.flatten())):
-            ax.imshow(img, cmap='gray')
-            ax.set_title(self.titles[idx])
-            ax.axis('on')
-            self._plot_zoom(ax, img, idx)
-        plt.show()
-        
-    def _add_images(self):
-        """Add images to the plot."""
-        for idx, (img, ax) in enumerate(zip(self.images, self.ax.flatten())):
-            ax.imshow(img, cmap='gray')
-            ax.set_title(self.titles[idx])
-            ax.axis('on')
-        plt.show()
-        
-        
-    def _info(self):
-        """Return the information about the class."""
-        print(f"available colors:\n", plt.colormaps())
-        print(f"positions for zoomout_location:\n", ['top right', 'top left', 'bottom right', 'bottom left'])
-        print(f"available plot_axis:\n", ['diagonal', 'half', 'diagonal_1'])
-        print(f"available axis:\n", ['on', 'off'])
-        print(f"available vmode:\n", ['show', 'plot', 'zoom', 'both', 'zoom_with_plot', 'zoom_with_patch', 'all', 'add', 'add_show', 'add_plot', 'add_all'])
-        print(f"available colorbar_location:\n", ['right', 'left', 'top', 'bottom'])
-        print(f"available title_horizontalalignment:\n", ['center', 'left', 'right'])
-        print(f"available second_title_horizontalalignment:\n", ['center', 'left', 'right'])
-        
-    def _prepare_images(self, images, idx):
-        """Converts images to a standard format."""
-        if not isinstance(images, list):
-            images = [images]
-        return [self._convert_image(im, idx) for im in images]
-
-    def _convert_image(self, image, idx):
-        """Convert image to a standard format."""
-        if isinstance(image, str):
-            return plt.imread(image)
-        if isinstance(image, np.ndarray):
-            return image
-        if isinstance(image, list):
-            return self._prepare_images(image, idx)
-        if isinstance(image, dict):
-            return self._prepare_images(image['images'], image.get('idx', idx))
-
-    def _calculate_grid(self):
-        """Determine the optimal number of rows and columns for the image grid."""
-        if self.show_all:
-            rows = int(np.sqrt(len(self.images)))
-            cols = len(self.images) // rows + (len(self.images) % rows > 0)
-        else:
-            if len(self.images) <= self.images_per_row:
-                return 1, len(self.images)
-            rows = len(self.images) // self.images_per_row
-            cols = self.images_per_row
-        return rows, cols
-
-    def _determine_fig_size(self):
-        """Calculate an appropriate figure size."""
-        if self.fig_size:
-            return self.fig_size
-        height, width = self.images[0].shape
-        return (self.cols * width // 100 + 1, self.rows * height // 100 + 1)
-
-    def set_titles(self, title='', min_max=True):
-        """Set titles for the images."""
-        self.titles = [
-            self._format_title(idx, title, min_max) for idx in range(len(self.images))
-        ]
-
-    def _format_title(self, idx, title, min_max):
-        """Format title based on provided index and min-max values."""
-        min_val, max_val = np.min(self.images[idx]), np.max(self.images[idx])
-        return f"{title}\n({min_val:.2f}, {max_val:.2f})" if min_max else title
-
-    def _plot_zoom(self, ax, img, idx):
-        """Add a zoom-in inset to a plot."""
-        left, right, bottom, top = self._rectangle_shaper(img, idx)
-        zoom_box = self._get_zoom_box_coords()
-        
-        ax.add_patch(
-            patches.Rectangle((left, bottom), right - left, top - bottom, edgecolor=self.plot_color, lw=2, facecolor='none')
-        )
-        
-        axins = ax.inset_axes(zoom_box)
-        axins.imshow(img[bottom:top, left:right], cmap=self.cmap)
-        axins.axis('off')
-        ax.indicate_inset_zoom(axins, edgecolor=self.plot_color)
-
-    def _rectangle_shaper(self, image, idx, width=0.1, height=0.1):
-        """Create a rectangle for zooming."""
-        h, w = image.shape
-        left = int(w * (1 - width) / 2)
-        right = int(w * (1 + width) / 2)
-        bottom = int(h * (1 - height) / 2)
-        top = int(h * (1 + height) / 2)
-        return left, right, bottom, top
-
-    def _get_zoom_box_coords(self):
-        """Return zoom box coordinates based on the specified location."""
-        return {
-            'top right': [0.7, 0.7, 0.3, 0.3],
-            'top left': [0.0, 0.7, 0.3, 0.3],
-            'bottom right': [0.7, 0.0, 0.3, 0.3],
-            'bottom left': [0.0, 0.0, 0.3, 0.3],
-        }.get(self.zoomout_location, [0.7, 0.7, 0.3, 0.3])
-
-    def plot_images(self, vmode='show', axis='on'):
-        """Core function for plotting images."""
-        fig, axes = plt.subplots(self.rows, self.cols, figsize=self._determine_fig_size())
-        axes = axes.flatten() if self.rows * self.cols > 1 else [axes]
-        
-        for idx, (img, ax) in enumerate(zip(self.images, axes)):
-            ax.imshow(img, cmap=self.cmap)
-            ax.set_title(self.titles[idx] if self.titles else '')
-            ax.axis(axis)
-
-            if vmode == 'zoom':
-                self._plot_zoom(ax, img, idx)
-
-        # Final adjustments and saving
-        self._finalize_plot(fig)
-
-    def _finalize_plot(self, fig):
-        """Finalize layout and handle saving."""
-        plt.tight_layout()
-        if self.save_path:
-            fig.savefig(f"{self.save_path}/{self.save_name or 'plot'}.png", dpi=300)
-        plt.show()
