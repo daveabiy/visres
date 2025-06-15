@@ -1,19 +1,26 @@
-# Experiment Visualization
+# Experiment Viewer
 
-An interactive web application for visualizing experiment results with intensity, phase, and attenuation images.
-
-## Features
-
-- Interactive image viewing with zoom capabilities
-- Full-screen modal view
-- Mobile-responsive design
-- QR code sharing
-- Easy sharing functionality
-- Keyboard shortcuts for navigation
+A simple static web app for visualizing experiment results.
 
 ## Live Demo
 
-Visit the live demo at: [Your GitHub Pages URL will appear here]
+Access the deployed site here: [https://684f343dcbe0111894e90cf2--visres.netlify.app/](https://684f343dcbe0111894e90cf2--visres.netlify.app/)
+
+Or scan the QR code below:
+
+![QR Code](public/qr-code.jpg)
+
+## Repository
+
+- [GitHub: visres/experiment-viewer](https://github.com/daveabiy/visres/tree/main/WebViewer)
+
+## Features
+- Mobile-friendly
+- Share via email or copy link
+- QR code for easy access
+
+## Usage
+Open the [Live Demo](https://684f343dcbe0111894e90cf2--visres.netlify.app/) in your browser or scan the QR code above with your mobile device.
 
 ## Local Development
 

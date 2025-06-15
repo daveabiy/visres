@@ -379,12 +379,6 @@
         </div>
     </div>
 
-    <!-- Add QR code container -->
-    <div class="qr-container">
-        <div id="qrcode" class="qr-code"></div>
-        <div class="qr-title">Scan to view</div>
-    </div>
-
     <!-- Add share button -->
     <button class="share-button" onclick="sharePage()">Share</button>
 
@@ -530,16 +524,6 @@
             }
         });
 
-        // Add QR code generation
-        function generateQRCode() {
-            const qr = qrcode(0, 'M');
-            qr.addData(window.location.href);
-            qr.make();
-            
-            const qrContainer = document.getElementById('qrcode');
-            qrContainer.innerHTML = qr.createImgTag(5);
-        }
-
         // Enhanced share functionality
         function sharePage() {
             const shareOptions = document.getElementById('shareOptions');
@@ -549,7 +533,7 @@
         function shareViaEmail() {
             const subject = 'Experiment Visualization';
             const body = 'Check out these experiment visualizations!\n\n' + window.location.href;
-            window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = `mailto:dawit.hailu@hereon.de?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         }
 
         function copyLink() {
@@ -597,7 +581,6 @@
         // Initialize
         window.onload = function() {
             showExperiment('Experiment 1');
-            generateQRCode();
         };
     </script>
 </body>
