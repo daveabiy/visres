@@ -525,8 +525,6 @@ def visualize(images, idx = None, rows = None, cols = None, vmode = 'show', cmap
     title = 'no_title' if title == 'None' or title == 'no' or title == False else title
     if title != 'no_title':
         titles = give_titles(images, title, min_max)
-    else:
-        titles = [''] * len(images)
     images = [im[0] if type(im) is list else im for im in images]
     shape = images[0].shape
     dim1 = True
@@ -575,6 +573,7 @@ def visualize(images, idx = None, rows = None, cols = None, vmode = 'show', cmap
 
     positions = kwargs.get('positions', None)
     zoom_box = None
+    
     zoombox_locations = {'top right': [0.7, 0.7, 0.3, 0.3], 'top left': [0.0, 0.7, 0.3, 0.3], 'bottom right': [0.7, 0.0, 0.3, 0.3], 'bottom left': [0.0, 0.0, 0.3, 0.3], 'below': [0.0, -0.3, 0.3, 0.3], 'bottom 3': [[0.0, -0.3, 0.3, 0.3], [0.35, -0.3, 0.3, 0.3], [0.7, -0.3, 0.3, 0.3]], 'bottom 2': [[0.0, -0.4, 0.4, 0.4], [0.45, -0.4, 0.4, 0.4]]}
     zoombox_locations.update({'obr': [1.1, 0.4, 0.6, 0.6], 'obl': [-0.5, -0.1, 0.4, 0.6], 'otr': [1.1, 0.7, 0.3, 0.3]}) if axin_axis == False else zoombox_locations.update({'obr': [0.7, -0.5, 0.3, 0.3], 'obl': [0.0, -0.5, 0.3, 0.3], 'otr': [0.0, 1.1, 0.3, 0.3]})
     zoom_box = zoombox_locations[zoomout_location]
@@ -927,6 +926,105 @@ def visualize(images, idx = None, rows = None, cols = None, vmode = 'show', cmap
         
     plt.show()        
     # return fig, ax, plt
-  
+
+class IV:
+    """ImageVisualizer class for plotting images."""
+    def __init__(self, images = None, config = 'libraries/config.json', **kwargs):
+        params = apply(kwargs, config)
+        for key, value in params.items():
+            setattr(self, key, value)
+        self._prepare_images(images, self.idx)
+        self.title = self.get_title()
+        self.use_pyqt if self.pyqt else None
+        description_title, add_length = get_setup_info(self.dict) if self.dict is not None else ('', None)
+        with open('libraries/strong_colors.json', 'r') as f:
+            self.strong_colors = json.load(f)
+        with open('libraries/zoombox_locations.json', 'r') as f:
+            self.zoombox_locations = json.load(f)
+        if self.axin_axis:
+            with open('libraries/plot_locations_axin_axis.json', 'r') as f:
+                self.plot_locations = json.load(f)
+        else:
+            with open('libraries/plot_locations_no_axin_axis.json', 'r') as f:
+                self.plot_locations = json.load(f)
+        self.zoom_box = self.zoombox_locations[self.zoombox_location] 
+        print(f"Using zoombox location: {self.zoombox_location}, coordinates: {self.zoom_box}") 
+        self.plot_locations = self.plot_locations[self.zoombox_location]
+        self.coordinates = self.get_coordinate()
+        
+
+        
+    def _prepare_images(self, images = None, idx = None):
+        """Prepare images for visualization."""
+        images = self.images if images == None else images    
+        images = convert_images(images, idx)
+        self.images = [im[0] if type(im) is list else im for im in images]
+        self.shapes = [im[0].shape for im in self.images]
+        self.fig, self.ax, self.rows, self.cols, fig_size= chose_fig(self.images, self.idx, self.rows, self.cols, self.add_length, self.show_all, self.images_per_row, self.fig_size)
+        self.upper_limit = len(images) if  self.rows* self.cols > len(self.images) else  self.rows* self.cols
+        self.cmap = [self.cmap] * len(self.images) if type(self.cmap) is not list else self.cmap
+        if len(self.cmap) < len(self.images):
+            self.cmap += [self.cmap[-1]] * (len(self.images) - len(self.cmap))
+        self.alpha = [self.alpha] * len(self.images)
+        self.fig_size = (self.fig_size, self.fig_size) if type(self.fig_size) is int else self.fig_size
+        
+        
+    
+    def get_title(self):
+        """Get the title for the image at index idx."""
+        title = self.title
+        title = 'no_title' if title == None or title == 'no' or title == False else title
+        if title != 'no_title':
+            titles = give_titles(self.images, title, self.min_max)
+            return titles
+        else:
+            return 'no_title'
+    
+    def use_pyqt(self):
+        """Check if PyQt is used for visualization."""
+        import pyqtgraph as pg
+        if not all(im.shape == self.images[0].shape for im in self.images):
+            max_shape = max(im.shape for im in self.images)
+            images = [resize_with_diff_interpolation(im, (max_shape[1], max_shape[0])) for im in self.images]
+        images = np.stack(images)
+        pg.show(images)
+        return None
+     
+    def get_coordinate(self):
+        left, right, buttom, top = [], [], [], []
+        lefts, rights, buttoms, tops = [], [], [], []
+        rects = []
+        #get the rectangle coordinates
+        if self.coordinates != [None, None, None, None]:
+            left, right, buttom, top = self.coordinates
+            lefts, rights, buttoms, tops = [left], [right], [buttom], [top]
+        else:
+            if self.positions is None: 
+                for image in self.images:
+                        l, r, b, t = rectangle_shaper(image, position = self.position, width = self.width, height = self.height, move_h = self.move_h, move_v = self.move_v)
+                        left.append(l)
+                        right.append(r)
+                        buttom.append(b)
+                        top.append(t)
+                lefts, rights, buttoms, tops = [left], [right], [buttom], [top]
+            else:
+                for i in range(len(self.positions)):
+                    rect_k = []
+                    left, right, buttom, top = [], [], [], []
+                    for j, image in enumerate(self.images):
+                        l, r, b, t = rectangle_shaper(image, position = self.positions[i], width = self.width, height = self.height, move_h = self.move_hs[i], move_v = self.move_vs[i]) 
+                        rect_k.append([l/image.shape[1], t/image.shape[0], r/image.shape[1] - l/image.shape[1], t/image.shape[0] -  b/image.shape[0]])
+                        left.append(l)
+                        right.append(r)
+                        buttom.append(b)
+                        top.append(t)
+                    lefts.append(left)
+                    rights.append(right)
+                    buttoms.append(buttom)
+                    tops.append(top)
+                    rects.append(rect_k)
+        self.lefts, self.rights, self.buttoms, self.tops, self.rects = lefts, rights, buttoms, tops, rects
+        return lefts, rights, buttoms, tops, rects        
+    
     
     
