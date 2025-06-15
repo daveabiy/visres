@@ -6,6 +6,8 @@
     <title>Experiment Visualization</title>
     <!-- Add QR code library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <!-- Add mobile-friendly touch library -->
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -222,31 +224,115 @@
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
+                margin: 0;
+                max-width: 100%;
             }
             .images {
                 grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .image-container {
+                margin: 0;
             }
             .image-container img {
                 width: 100%;
                 height: auto;
                 max-height: 300px;
             }
+            .experiment-button {
+                width: 100%;
+                margin: 5px 0;
+                padding: 15px;
+                font-size: 16px;
+            }
             .modal-content {
-                width: 95%;
-                margin: 5% auto;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 10px;
+            }
+            .modal-image {
+                max-height: 70vh;
             }
             .image-controls {
-                flex-wrap: wrap;
-                justify-content: center;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: rgba(0, 0, 0, 0.8);
+                padding: 10px;
+                display: flex;
+                justify-content: space-around;
+            }
+            .control-button {
+                padding: 10px 20px;
+                font-size: 16px;
             }
             .qr-container {
-                bottom: 10px;
+                position: fixed;
+                bottom: 70px;
                 right: 10px;
+                background: white;
+                padding: 5px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                z-index: 100;
             }
             .qr-code {
                 width: 80px;
                 height: 80px;
             }
+            .share-button {
+                position: fixed;
+                bottom: 70px;
+                left: 10px;
+                padding: 10px 20px;
+                font-size: 16px;
+            }
+            .share-options {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: white;
+                padding: 20px;
+                display: none;
+                flex-direction: column;
+                gap: 10px;
+                z-index: 1000;
+            }
+            .share-options.active {
+                display: flex;
+            }
+            .share-option {
+                padding: 15px;
+                background: #f0f0f0;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                text-align: left;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .share-option img {
+                width: 24px;
+                height: 24px;
+            }
+        }
+
+        /* Add touch gesture hints */
+        .gesture-hint {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: none;
         }
     </style>
 </head>
@@ -301,6 +387,31 @@
 
     <!-- Add share button -->
     <button class="share-button" onclick="sharePage()">Share</button>
+
+    <!-- Add share options panel -->
+    <div class="share-options" id="shareOptions">
+        <button class="share-option" onclick="shareViaWhatsApp()">
+            <img src="https://cdn.jsdelivr.net/npm/simple-icons@v5/icons/whatsapp.svg" alt="WhatsApp">
+            Share via WhatsApp
+        </button>
+        <button class="share-option" onclick="shareViaTelegram()">
+            <img src="https://cdn.jsdelivr.net/npm/simple-icons@v5/icons/telegram.svg" alt="Telegram">
+            Share via Telegram
+        </button>
+        <button class="share-option" onclick="shareViaEmail()">
+            <img src="https://cdn.jsdelivr.net/npm/simple-icons@v5/icons/gmail.svg" alt="Email">
+            Share via Email
+        </button>
+        <button class="share-option" onclick="copyLink()">
+            <img src="https://cdn.jsdelivr.net/npm/simple-icons@v5/icons/link.svg" alt="Copy Link">
+            Copy Link
+        </button>
+    </div>
+
+    <!-- Add gesture hint -->
+    <div class="gesture-hint" id="gestureHint">
+        Pinch to zoom, swipe to navigate
+    </div>
 
     <script>
         const experimentImageMap = {
@@ -371,6 +482,7 @@
                 currentImageType = imageType;
                 currentZoom = 1;
                 modalImg.style.transform = `scale(${currentZoom})`;
+                initTouchGestures();
             }
         }
 
@@ -436,35 +548,78 @@
             qrContainer.innerHTML = qr.createImgTag(5);
         }
 
-        // Add share functionality
-        async function sharePage() {
-            if (navigator.share) {
-                try {
-                    await navigator.share({
-                        title: 'Experiment Visualization',
-                        text: 'Check out these experiment visualizations!',
-                        url: window.location.href
-                    });
-                } catch (err) {
-                    console.error('Error sharing:', err);
-                }
-            } else {
-                // Fallback for browsers that don't support Web Share API
-                const dummy = document.createElement('input');
-                document.body.appendChild(dummy);
-                dummy.value = window.location.href;
-                dummy.select();
-                document.execCommand('copy');
-                document.body.removeChild(dummy);
+        // Enhanced share functionality
+        function sharePage() {
+            const shareOptions = document.getElementById('shareOptions');
+            shareOptions.classList.toggle('active');
+        }
+
+        function shareViaWhatsApp() {
+            const text = 'Check out these experiment visualizations!';
+            const url = window.location.href;
+            window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`);
+        }
+
+        function shareViaTelegram() {
+            const text = 'Check out these experiment visualizations!';
+            const url = window.location.href;
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
+        }
+
+        function shareViaEmail() {
+            const subject = 'Experiment Visualization';
+            const body = 'Check out these experiment visualizations!\n\n' + window.location.href;
+            window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
                 alert('Link copied to clipboard!');
+            });
+        }
+
+        // Add touch gesture support
+        function initTouchGestures() {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            
+            if (modal && modalImg) {
+                const hammer = new Hammer(modal);
+                
+                // Pinch to zoom
+                hammer.get('pinch').set({ enable: true });
+                hammer.on('pinch', function(e) {
+                    currentZoom = Math.min(Math.max(currentZoom * e.scale, 0.5), 3);
+                    updateZoom();
+                });
+
+                // Show gesture hint on mobile
+                if (window.innerWidth <= 768) {
+                    const hint = document.getElementById('gestureHint');
+                    hint.style.display = 'block';
+                    setTimeout(() => {
+                        hint.style.display = 'none';
+                    }, 3000);
+                }
             }
         }
 
-        // Initialize with first experiment
+        // Close share options when clicking outside
+        document.addEventListener('click', function(event) {
+            const shareOptions = document.getElementById('shareOptions');
+            const shareButton = document.querySelector('.share-button');
+            
+            if (!shareOptions.contains(event.target) && !shareButton.contains(event.target)) {
+                shareOptions.classList.remove('active');
+            }
+        });
+
+        // Initialize
         window.onload = function() {
             showExperiment('Experiment 1');
             generateQRCode();
         };
     </script>
 </body>
+</html>
 </html>
