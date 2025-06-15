@@ -390,14 +390,6 @@
 
     <!-- Add share options panel -->
     <div class="share-options" id="shareOptions">
-        <button class="share-option" onclick="shareViaWhatsApp()">
-            <img src="https://cdn.jsdelivr.net/npm/simple-icons@v5/icons/whatsapp.svg" alt="WhatsApp">
-            Share via WhatsApp
-        </button>
-        <button class="share-option" onclick="shareViaTelegram()">
-            <img src="https://cdn.jsdelivr.net/npm/simple-icons@v5/icons/telegram.svg" alt="Telegram">
-            Share via Telegram
-        </button>
         <button class="share-option" onclick="shareViaEmail()">
             <img src="https://cdn.jsdelivr.net/npm/simple-icons@v5/icons/gmail.svg" alt="Email">
             Share via Email
@@ -554,18 +546,6 @@
             shareOptions.classList.toggle('active');
         }
 
-        function shareViaWhatsApp() {
-            const text = 'Check out these experiment visualizations!';
-            const url = window.location.href;
-            window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`);
-        }
-
-        function shareViaTelegram() {
-            const text = 'Check out these experiment visualizations!';
-            const url = window.location.href;
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
-        }
-
         function shareViaEmail() {
             const subject = 'Experiment Visualization';
             const body = 'Check out these experiment visualizations!\n\n' + window.location.href;
@@ -621,5 +601,4 @@
         };
     </script>
 </body>
-</html>
 </html>
