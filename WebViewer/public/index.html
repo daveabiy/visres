@@ -338,29 +338,49 @@
 </head>
 <body>
     <div class="container">
+        <!-- About the Project section -->
+        <section id="about-project" style="margin-bottom: 30px;">
+            <h1>About the Project</h1>
+            <p>
+                The beams of PETRA III, P05 and P07, like many other beam lines, have various inverse problems involved in them. These include computed tomography, phase retrieval, deblurring due to lenses or fly-scan rotational blurs. ForwardNET is developed with this in mind.<br><br>
+                The phase retrieval problem is a non-linear, ill-posed inverse problem. It is also an important step in X-ray imaging, a precursor to the tomographic reconstruction stage. Experiments involving micro and nanometer-sized objects usually have weak absorption and contrast. This is usually the case in most experiments taking place at high-energy big Synchrotron centers like DESY.<br><br>
+                Based on the works of GanRec and Deep-Image Prior, this model combines different generative models, with a possibility of adding an adversarial network.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; align-items: flex-start; margin-top: 30px;">
+                <figure style="max-width: 400px; text-align: center;">
+                    <img src="images/setup/architecture.png" alt="ForwardNET Architecture" style="width: 100%; max-width: 400px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <figcaption style="font-size: 0.95em; color: #555; margin-top: 8px;">ForwardNET architecture: Generator, Forward Operator, Discriminator, and Loss Function.</figcaption>
+                </figure>
+                <figure style="max-width: 350px; text-align: center;">
+                    <img src="images/setup/setup.png" alt="Experimental Setup" style="width: 100%; max-width: 350px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <figcaption style="font-size: 0.95em; color: #555; margin-top: 8px;">Experimental setup for X-ray phase retrieval and tomography.</figcaption>
+                </figure>
+            </div>
+        </section>
         <h1>Experiment Visualization</h1>
         <div class="experiment-list">
-            <button class="experiment-button" onclick="showExperiment('Experiment 1')">Experiment 1</button>
-            <button class="experiment-button" onclick="showExperiment('Experiment 2')">Experiment 2</button>
-            <button class="experiment-button" onclick="showExperiment('Experiment 3')">Experiment 3</button>
+            <button class="experiment-button" onclick="showExperiment('Simulation')">Simulation</button>
+            <button class="experiment-button" onclick="showExperiment('Sequential Learning')">Sequential Learning</button>
+            <button class="experiment-button" onclick="showExperiment('Compact Support')">Compact Support</button>
         </div>
         <div id="experiment-details" class="experiment-details">
             <h2 id="experiment-name"></h2>
+            <p id="experiment-description" style="font-size: 1.1em; color: #555; margin-bottom: 20px;"></p>
             <div class="images">
-                <div class="image-container" onclick="openModal('intensity')">
+                <div class="image-container">
                     <img id="intensity-image" src="" alt="Intensity Image" class="hidden">
                     <div class="loading hidden">Loading...</div>
-                    <div class="image-title">Intensity Image</div>
+                    <div class="image-title" id="intensity-title"></div>
                 </div>
-                <div class="image-container" onclick="openModal('phase')">
+                <div class="image-container">
                     <img id="phase-image" src="" alt="Phase Image" class="hidden">
                     <div class="loading hidden">Loading...</div>
-                    <div class="image-title">Phase Image</div>
+                    <div class="image-title" id="phase-title"></div>
                 </div>
-                <div class="image-container" onclick="openModal('attenuation')">
+                <div class="image-container">
                     <img id="attenuation-image" src="" alt="Attenuation Image" class="hidden">
                     <div class="loading hidden">Loading...</div>
-                    <div class="image-title">Attenuation Image</div>
+                    <div class="image-title" id="attenuation-title"></div>
                 </div>
             </div>
         </div>
@@ -379,32 +399,62 @@
         </div>
     </div>
 
-    <!-- Add share button -->
-    <button class="share-button" onclick="sharePage()">Share</button>
-
-    <!-- Add share options panel -->
-    <div class="share-options" id="shareOptions">
-        <button class="share-option" onclick="shareViaEmail()">
-            <img src="https://cdn.jsdelivr.net/npm/simple-icons@v5/icons/gmail.svg" alt="Email">
-            Share via Email
-        </button>
-        <button class="share-option" onclick="copyLink()">
-            <img src="https://cdn.jsdelivr.net/npm/simple-icons@v5/icons/link.svg" alt="Copy Link">
-            Copy Link
-        </button>
-    </div>
-
     <!-- Add gesture hint -->
     <div class="gesture-hint" id="gestureHint">
         Pinch to zoom, swipe to navigate
     </div>
 
+    <!-- Add copyright footer -->
+    <footer style="text-align:center; margin-top:40px; color:#888;">
+        © 2025 Dawit Hailu. All images and content are protected. Do not reuse without permission.
+    </footer>
+    <!-- Add contact and logo section at the bottom -->
+    <div style="display: flex; justify-content: space-between; align-items: center; max-width: 700px; margin: 40px auto 0 auto; padding: 20px 0;">
+        <section id="contact" style="text-align:left;">
+            <h2>Contact</h2>
+            <p style="font-size:1.1em; color:#333; margin: 8px 0 2px 0;">Dawit Hailu</p>
+            <p style="margin: 2px 0;"><a href="mailto:dawit.hailu@hereon.de" style="color:#007bff; text-decoration:none;">dawit.hailu@hereon.de</a></p>
+            <p style="margin: 2px 0;">+49 1573 3656952</p>
+            <p style="margin: 2px 0;"><a href="https://www.linkedin.com/in/dawitstranger/" target="_blank" rel="noopener" style="color:#007bff; text-decoration:none;">LinkedIn</a></p>
+        </section>
+        <figure style="max-width: 200px; text-align: right; margin: 0;">
+            <img src="images/logo.png" alt="Helmholtz-Zentrum Hereon Logo" style="width: 100%; max-width: 200px; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background: white;">
+            <figcaption style="font-size: 0.95em; color: #555; margin-top: 8px;">Helmholtz-Zentrum Hereon</figcaption>
+        </figure>
+    </div>
+
     <script>
         const experimentImageMap = {
-            "Experiment 1": "experiment1",
-            "Experiment 2": "experiment2",
-            "Experiment 3": "experiment3"
+            "Simulation": "experiment1",
+            "Sequential Learning": "experiment2",
+            "Compact Support": "experiment3"
         };
+
+        const experimentDescriptions = {
+            "Simulation": "[letters and geometric objects], [QR codes], and [Mg-based screw with noise].",
+            "Sequential Learning": "Tooth data downsampled multiple times and reconstructed at each resolution.",
+            "Compact Support": "Mg corrosion image with SMRL for improved background and compact support."
+        };
+
+
+        const experimentImageTitles = {
+            "Simulation": [
+                "Fig 1. Letters",
+                "Fig 2. QR code",
+                "Fig 3. Mg-based Screw"
+            ],
+            "Sequential Learning": [
+                "Fig 1. Tooth Intensity",
+                "Fig 2. Sequential Learning",
+                "Fig 3. RGB Phase"
+            ],
+            "Compact Support": [
+                "Fig 1. Input Intensity",
+                "Fig 2. SMRL Variants",
+                "Fig 3. Uncertainty Analysis"
+            ]
+        };
+
 
         let currentZoom = 1;
         let currentImageType = '';
@@ -419,41 +469,32 @@
         }
 
         function showExperiment(experimentName) {
-            console.log('Showing experiment:', experimentName);
+            currentExperiment = experimentName;
             document.getElementById('experiment-name').innerText = experimentName;
+            document.getElementById('experiment-description').innerText = experimentDescriptions[experimentName] || '';
             const folder = experimentImageMap[experimentName];
-            
-            if (!folder) {
-                console.error('No folder mapping found for:', experimentName);
-                alert("No images found for this experiment.");
-                return;
-            }
-
             const imageTypes = ['intensity', 'phase', 'attenuation'];
-            imageTypes.forEach(type => {
+            imageTypes.forEach((type, idx) => {
                 const img = document.getElementById(`${type}-image`);
                 const loading = img.parentElement.querySelector('.loading');
                 const errorDiv = img.parentElement.querySelector('.error-message');
-                
+                const titleDiv = document.getElementById(`${type}-title`);
                 if (errorDiv) errorDiv.remove();
                 img.classList.add('hidden');
                 loading.classList.remove('hidden');
-                
                 const imagePath = `images/${folder}/${type}.png`;
-                console.log('Loading image:', imagePath);
-                
                 img.onload = function() {
-                    console.log('Image loaded successfully:', imagePath);
                     loading.classList.add('hidden');
                     img.classList.remove('hidden');
                 };
-                
                 img.onerror = function() {
-                    console.error('Image failed to load:', imagePath);
                     handleImageError(img);
                 };
-                
                 img.src = imagePath;
+                // Set the image title to the correct Fig info
+                if (titleDiv) titleDiv.textContent = experimentImageTitles[experimentName][idx];
+                // Set click handler for modal info
+                img.parentElement.onclick = function() { openModal(type, idx); };
             });
         }
 
@@ -524,24 +565,6 @@
             }
         });
 
-        // Enhanced share functionality
-        function sharePage() {
-            const shareOptions = document.getElementById('shareOptions');
-            shareOptions.classList.toggle('active');
-        }
-
-        function shareViaEmail() {
-            const subject = 'Experiment Visualization';
-            const body = 'Check out these experiment visualizations!\n\n' + window.location.href;
-            window.location.href = `mailto:dawit.hailu@hereon.de?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        }
-
-        function copyLink() {
-            navigator.clipboard.writeText(window.location.href).then(() => {
-                alert('Link copied to clipboard!');
-            });
-        }
-
         // Add touch gesture support
         function initTouchGestures() {
             const modal = document.getElementById('imageModal');
@@ -568,19 +591,9 @@
             }
         }
 
-        // Close share options when clicking outside
-        document.addEventListener('click', function(event) {
-            const shareOptions = document.getElementById('shareOptions');
-            const shareButton = document.querySelector('.share-button');
-            
-            if (!shareOptions.contains(event.target) && !shareButton.contains(event.target)) {
-                shareOptions.classList.remove('active');
-            }
-        });
-
         // Initialize
         window.onload = function() {
-            showExperiment('Experiment 1');
+            showExperiment('Simulation');
         };
     </script>
 </body>

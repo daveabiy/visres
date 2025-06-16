@@ -4,7 +4,7 @@ A simple static web app for visualizing experiment results.
 
 ## Live Demo
 
-Access the deployed site here: [https://684f343dcbe0111894e90cf2--visres.netlify.app/](https://684f38bb8370477ab8eda066--visres.netlify.app/)
+Access the deployed site here: [https://684f343dcbe0111894e90cf2--visres.netlify.app/](https://684f343dcbe0111894e90cf2--visres.netlify.app/)
 
 Or scan the QR code below:
 
@@ -15,32 +15,38 @@ Or scan the QR code below:
 - [GitHub: visres/experiment-viewer](https://github.com/daveabiy/visres/tree/main/WebViewer)
 
 ## Features
+
 - Mobile-friendly
 - Share via email or copy link
 - QR code for easy access
 
 ## Usage
+
 Open the [Live Demo](https://684f343dcbe0111894e90cf2--visres.netlify.app/) in your browser or scan the QR code above with your mobile device.
 
 ## Local Development
 
 1. Clone the repository:
+
 ```bash
 git clone [Your repository URL]
 ```
 
 2. Navigate to the project directory:
+
 ```bash
 cd experiment-viewer
 ```
 
 3. Start a local server:
+
 ```bash
 cd public
 python -m http.server 8000
 ```
 
 4. Open your browser and visit:
+
 ```
 http://localhost:8000
 ```
