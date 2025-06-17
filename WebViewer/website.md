@@ -13,7 +13,7 @@ Currently creating a website to show the work that is being done in my Ph.D.
 The beams of PETRA III, P05 and P07, like many other beam lines, have various inverse problems involved in them. These include computed tomography, phase retrieval, deblurring due to lenses or fly-scan rotational blurs. ForwardNET is developed with this in mind.
 
 The phase retrieval problem is a non-linear, ill-posed inverse problem. It is also an important step in X-ray imaging, a precursor to the tomographic reconstruction stage. Experiments involving micro and nanometer-sized objects usually have weak absorption and contrast. This is usually the case in most experiments taking place at high-energy big Synchrotron centers like DESY.
-Based on the works of GanRec /[1] and Deep-Image Prior /[4], this model combines different generative models, with a possibility of adding an adversarial network.
+Based on the works of GanRec \[1] and Deep-Image Prior \[4], this model combines different generative models, with a possibility of adding an adversarial network.
 
 ## Forwardnet
 
@@ -37,16 +37,16 @@ Fig1. Letters: Propagated letter and geometric objects, which different phase an
 Fig2. QR code: Proagated QR codes having different information
 Fig3. Mg-based Screw: Different noise added to the simulated object and how the model reconstructed it.
 ![intensity.png](public/images/experiment1/intensity.png)
-![phase.png](public/images/experiment1/phase.png)
+![phase.png](public\images\experiment1\phase.png)
 
 ![attenuation.png](public/images/experiment1/attenuation.png)
 
 ### Experiment 2: Sequential learning from a tooth data.
 
 The phase retrieval problem has the scalability property, meaning that solving the lower resolution will be relevant to solving the higher resolution. This will help in a faster and more accurate reconstruction. This approach which learns from course to fine can help the model learn the edges and structure in lower resolution and high frequency at the higher resolution. The rgb shows how the background and edges has been well resolved in the phase.
-![intensity.png](public/images/experiment2/intensity.png "intensity.png")
+![intensity.png](public\images\experiment2\intensity.png "intensity.png")
 ![attenuation.png](public/images/experiment2/attenuation.png)
-![phase.png](public/images/experiment2/phase.png "phase.png")
+![phase.png](public\images\experiment2\phase.png "phase.png")
 
 ### Experiment 3. Mg corrosion image - SMRL as a compact support
 
@@ -55,8 +55,8 @@ Fig 1: Input intensity
 Fig 2: Left: SMRL with Mask, Middle: SMRL without Mask, Right: Direct reconstruction without Mask and SMRL
 Fig 3: Uncertainity analysis. This helps in determining which part of the image is well reconstructed by all, but which ones the SMRL improves on.
 
-![intensity.png](public/images/experiment3/intensity.png)
-![phase.png](public/images/experiment3/phase.png)![attenuation.png](public/images/experiment3/attenuation.png)
+![intensity.png](public\images\experiment3\intensity.png)
+![phase.png](public\images\experiment3\phase.png)![attenuation.png](public\images\experiment3\attenuation.png)
 
 Publications:
 [Phase retrieval using GAN](https://doi.org/10.1364/opticaopen.26367208.v1)

@@ -1,28 +1,139 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Experiment Visualization</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <h1>Experiment Visualization</h1>
-        <div class="experiment-list">
-            <button class="experiment-button" onclick="showExperiment('Experiment 1')">Experiment 1</button>
-            <button class="experiment-button" onclick="showExperiment('Experiment 2')">Experiment 2</button>
-            <button class="experiment-button" onclick="showExperiment('Experiment 3')">Experiment 3</button>
-        </div>
-        <div id="result" class="result">
-            <h2 id="experiment-name"></h2>
-            <div class="images">
-                <img id="intensity-image" src="" alt="Intensity Image" class="hidden">
-                <img id="phase-image" src="" alt="Phase Image" class="hidden">
-                <img id="attenuation-image" src="" alt="Attenuation Image" class="hidden">
-            </div>
-        </div>
-    </div>
-    <script src="script.js"></script>
-</body>
-</html>
+@import 'theme.css';
+
+/* Layout */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.85); /* summary table: panel/container */
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  backdrop-filter: blur(6px);
+  color: #1a1a1a;
+}
+
+/* Experiment List */
+.experiment-list {
+  display: flex;
+  gap: 1rem;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.experiment-button {
+  min-width: 150px;
+  padding: 12px 28px;
+  background: linear-gradient(90deg, var(--accent-blue) 0%, #1e2a78 100%);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1em;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+}
+.experiment-button:hover {
+  background: linear-gradient(90deg, #1e2a78 0%, var(--accent-blue) 100%);
+  transform: translateY(-2px) scale(1.04);
+}
+
+/* Result Section */
+.result {
+  margin-top: 2rem;
+}
+
+.images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.images img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--accent-blue); /* summary table: image border */
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+  background: #f0f0f0; /* summary table: image background */
+}
+
+.image-title {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,0.7); /* summary table: title background */
+  color: #fff;
+  border-radius: 0 0 8px 8px;
+  padding: 8px 0;
+  font-size: 1em;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.image-container:hover .image-title {
+  opacity: 1;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Loading Indicator */
+.loading-indicator {
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--accent-blue);
+  padding: 1rem;
+  transition: opacity 0.3s ease;
+}
+
+.loading-indicator.hidden {
+  opacity: 0;
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Zoomable Images */
+.zoomable {
+  cursor: zoom-in;
+  transition: transform 0.3s ease-in-out;
+}
+
+.zoomable.zoomed {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1.8);
+  z-index: 1000;
+  max-width: 90vw;
+  max-height: 90vh;
+  cursor: zoom-out;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.7);
+}
+
+.zoomable.zoomed::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 999;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--accent-blue);
+  text-shadow: 0 2px 8px #1e2a78;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  margin-top: 3rem;
+  color: #666;
+}

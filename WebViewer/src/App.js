@@ -17,10 +17,13 @@
         
         <div id="results" class="results">
             <h2 id="experiment-name"></h2>
+            <div id="image-loading-indicator" class="loading-indicator hidden">Loading images...</div>
             <div class="images">
                 <img id="intensity-image" src="" alt="Intensity Image" class="hidden">
                 <img id="phase-image" src="" alt="Reconstructed Phase" class="hidden">
                 <img id="attenuation-image" src="" alt="Attenuation" class="hidden">
+                <img id="architecture-image" src="" alt="Architecture" class="hidden zoomable">
+                <img id="setup-image" src="" alt="Setup" class="hidden zoomable">
             </div>
         </div>
     </div>

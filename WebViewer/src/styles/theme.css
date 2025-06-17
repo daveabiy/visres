@@ -1,0 +1,135 @@
+:root {
+  /* Base colors */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #121218;
+  
+  /* Text colors */
+  --text-light: #f8faff;    /* for any remaining dark-mode elements */
+  --text-dark: #1a1a1a;     /* for content on light panels */
+
+  /* Content panel background */
+  --bg-content: rgba(255, 255, 255, 0.85);
+
+  /* Neon accent colors */
+  --neon-blue: #00f3ff;
+  --neon-magenta: #ff00ff;
+  
+  /* Glow effects */
+  --glow-blue: 
+    0 0 8px var(--neon-blue),
+    0 0 24px var(--neon-blue),
+    0 0 48px var(--neon-blue);
+  --glow-magenta: 
+    0 0 6px var(--neon-magenta),
+    0 0 18px var(--neon-magenta);
+}
+
+/* Fullscreen galaxy background stays behind everything */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+#galaxy-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+}
+
+/* Main content wrapper on frosted-glass light panel */
+.content {
+  background: var(--bg-content);
+  color: var(--text-dark);
+  padding: 2rem;
+  margin: 2rem auto;
+  max-width: 600px;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(6px);
+  position: relative;
+  z-index: 1;
+}
+
+/* Keep any remaining dark-mode / overlay cards as before */
+.card {
+  background: rgba(20, 20, 30, 0.92);
+  border: 2px solid var(--neon-blue);
+  border-radius: 18px;
+  box-shadow:
+    0 0 24px 4px #00f3ff55,
+    0 0 64px 8px #ff00ff22;
+  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 1;
+}
+
+/* Body typography is now inherited from .content */
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+/* Headings inside .content use dark text and a soft glow */
+.content h1,
+.content h2,
+.content h3,
+.content h4,
+.content h5,
+.content h6 {
+  color: var(--text-dark);
+  text-shadow: var(--glow-blue);
+}
+
+/* Links & keywords inside .content */
+.content a,
+.content .neon-keyword {
+  color: var(--neon-magenta);
+  text-shadow: var(--glow-magenta);
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+.content a:hover,
+.content .neon-keyword:hover {
+  color: var(--neon-blue);
+  text-shadow: var(--glow-blue);
+}
+
+/* Buttons now live in the light panel but keep neon styling */
+.content button {
+  background-color: var(--bg-secondary);
+  color: var(--text-light);
+  border: 1px solid var(--neon-blue);
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-shadow: var(--glow-blue);
+  box-shadow: 0 0 10px var(--neon-blue);
+}
+.content button:hover {
+  background-color: var(--neon-blue);
+  color: var(--bg-primary);
+  box-shadow: var(--glow-blue);
+}
+
+/* Call-to-action buttons */
+.content .cta {
+  background-color: var(--neon-magenta);
+  color: var(--bg-primary);
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 4px;
+  font-weight: bold;
+  text-shadow: var(--glow-magenta);
+  box-shadow: 0 0 15px var(--neon-magenta);
+  transition: all 0.3s ease;
+}
+.content .cta:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-magenta);
+}
+
+/* Center the specific h3 heading */
+h3#phase-retrieval-problem {
+  text-align: center;
+}
