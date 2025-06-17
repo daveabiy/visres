@@ -8,7 +8,7 @@ Access the deployed site here: [https://visres.netlify.app/](https://visres.netl
 
 Or scan the QR code below:
 
-![QR Code](public/qr-code.png)
+![QR Code](public/qr_code.png)
 
 ## Repository
 
