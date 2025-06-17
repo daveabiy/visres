@@ -4,11 +4,11 @@ A simple static web app for visualizing experiment results.
 
 ## Live Demo
 
-Access the deployed site here: [https://684f343dcbe0111894e90cf2--visres.netlify.app/](https://684f343dcbe0111894e90cf2--visres.netlify.app/)
+Access the deployed site here: [https://visres.netlify.app/](https://visres.netlify.app/)
 
 Or scan the QR code below:
 
-![QR Code](public/qr-code.jpg)
+![QR Code](public/qr-code.png)
 
 ## Repository
 
