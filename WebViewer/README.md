@@ -29,7 +29,7 @@ Open the [Live Demo](https://684f343dcbe0111894e90cf2--visres.netlify.app/) in y
 1. Clone the repository:
 
 ```bash
-git clone [Your repository URL]
+git clone https://github.com/daveabiy/visres/tree/main/WebViewer
 ```
 
 2. Navigate to the project directory:
